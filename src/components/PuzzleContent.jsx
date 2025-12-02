@@ -14,9 +14,14 @@ export const PuzzleInput = ({ value, onChange, onKeyPress, placeholder }) => {
   );
 };
 
-export const PuzzleContent = ({ puzzle }) => {
-  // Render puzzle options if available
+export const PuzzleContent = ({ puzzle, onSelect, selectedOption }) => {
+  // Render puzzle options if available — clickable when handler is provided
   if (puzzle.options && puzzle.options.length > 0) {
+    // If a more advanced options component is needed, use OptionsList
+    if (onSelect) {
+      return <OptionsList options={puzzle.options} onSelect={onSelect} selectedOption={selectedOption} />;
+    }
+
     return (
       <div className="flex gap-6 justify-center flex-wrap mt-6">
         {puzzle.options.map((opt, idx) => (

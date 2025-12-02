@@ -136,7 +136,10 @@ const ChronoCipher = () => {
       return;
     }
 
-    if (level <= 40 && gameState === "playing") {
+    // Reset level state whenever we enter the playing state for any level.
+    // Previously this only ran for levels <= 40 which caused later mini-games
+    // (levels 41-43) to remain in a completed state and therefore not render.
+    if (gameState === "playing") {
       setTimeLeft(currentPuzzle?.time || 60);
       setAnswer("");
       setMessage("");
@@ -172,13 +175,24 @@ const ChronoCipher = () => {
   }, []);
 
   // elapsed timer (for score/time display)
+  // Keep counting while playing and during the final lock screen; stop when victory achieved.
   useEffect(() => {
     if (!startTime) return;
+
     const update = () => setElapsed(Math.floor((Date.now() - startTime) / 1000));
-    update();
-    const iv = setInterval(update, 1000);
-    return () => clearInterval(iv);
-  }, [startTime]);
+
+    if (gameState === "playing" || gameState === "final") {
+      update();
+      const iv = setInterval(update, 1000);
+      return () => clearInterval(iv);
+    }
+
+    // If we've reached victory, capture the final elapsed once and stop the timer.
+    if (gameState === "victory") {
+      update();
+    }
+    return undefined;
+  }, [startTime, gameState]);
 
   const playSound = (type) => {
     console.log(`Playing ${type} sound`);
@@ -311,6 +325,8 @@ const ChronoCipher = () => {
           setAnswer("");
           gameProgressManager.clearProgress();
         }}
+        score={score}
+        elapsed={elapsed}
       />
     );
   }
@@ -532,7 +548,11 @@ const ChronoCipher = () => {
             {currentPuzzle?.question}
           </h2>
 
-          <PuzzleContent puzzle={currentPuzzle} />
+          <PuzzleContent
+            puzzle={currentPuzzle}
+            onSelect={(opt) => setAnswer(opt)}
+            selectedOption={answer}
+          />
 
           {/* Only show text input for puzzles that require typed answers.
               Hide input for mini-games and puzzles that present clickable options. */}

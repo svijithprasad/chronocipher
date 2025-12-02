@@ -175,7 +175,10 @@ export const ProgressBar = ({ level, totalLevels }) => {
   );
 };
 
-export const VictoryScreen = ({ clues, onPlayAgain }) => {
+export const VictoryScreen = ({ clues, onPlayAgain, score = 0, elapsed = 0 }) => {
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+
   return (
     <div className="min-h-screen bg-linear-to-b from-black via-purple-950 to-black flex items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 opacity-30">
@@ -195,6 +198,10 @@ export const VictoryScreen = ({ clues, onPlayAgain }) => {
       </div>
 
       <div className="max-w-3xl w-full bg-black/80 border-2 border-cyan-500 rounded-lg p-12 text-center relative z-10 animate-pulse shadow-2xl shadow-cyan-500/50">
+        <div className="absolute top-4 right-6 z-20 bg-black/70 border border-cyan-600 rounded px-3 py-2 text-sm text-cyan-200 font-bold flex gap-4 items-center">
+          <div>Score: <span className="text-cyan-300">{score}</span></div>
+          <div>Time: <span className="text-cyan-300">{minutes}:{seconds.toString().padStart(2, '0')}</span></div>
+        </div>
         <div className="text-7xl mb-8 animate-bounce">🎉</div>
 
         <h1 className="text-5xl font-bold text-cyan-400 mb-4 drop-shadow-lg">
@@ -232,13 +239,7 @@ export const VictoryScreen = ({ clues, onPlayAgain }) => {
           </div>
         </div>
 
-        <button
-          onClick={onPlayAgain}
-          className="px-8 py-4 bg-linear-to-r from-cyan-600 to-purple-600 text-white rounded-lg hover:from-cyan-500 hover:to-purple-500 transition-all font-bold text-lg shadow-lg hover:shadow-cyan-500/50 flex items-center gap-2 mx-auto"
-        >
-          <RotateCcw size={24} />
-          RESTART JOURNEY
-        </button>
+        
       </div>
     </div>
   );
