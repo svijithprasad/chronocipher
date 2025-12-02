@@ -90,15 +90,30 @@ const ChronoCipher = () => {
       setLevel(savedLevel);
       setClues(savedClues);
       // restore gameState carefully (final/victory states)
-      if (savedState === "victory") setGameState("victory");
-      else if (savedState === "final") setGameState("final");
-      else setGameState("playing");
+      if (savedState === "victory") {
+        setGameState("victory");
+      } else if (savedState === "final") {
+        setGameState("final");
+      } else {
+        setGameState("playing");
+      }
       setHintUsed(!!savedProgress.hintUsed);
       // If timeLeft was saved, restore it; otherwise use puzzle default
       const restoredTime = typeof savedProgress.timeLeft === "number" ? savedProgress.timeLeft : (puzzles[savedLevel - 1]?.time || 60);
       setTimeLeft(restoredTime);
       setScore(savedProgress.totalScore || 0);
-      setStartTime(savedProgress.startTime || Date.now());
+      // If the saved run already reached victory, restore the final elapsed time
+      if (savedState === "victory") {
+        if (typeof savedProgress.totalTimeMs === "number") {
+          setElapsed(Math.floor(savedProgress.totalTimeMs / 1000));
+        } else if (savedProgress.startTime) {
+          setElapsed(Math.floor((Date.now() - savedProgress.startTime) / 1000));
+        }
+        // Do not set startTime so the elapsed timer won't resume ticking on mount
+        setStartTime(null);
+      } else {
+        setStartTime(savedProgress.startTime || Date.now());
+      }
       didRestoreRef.current = true;
     }
 
@@ -125,8 +140,25 @@ const ChronoCipher = () => {
       return;
     }
 
-    gameProgressManager.saveProgress({ level, clues, gameState, timeLeft, hintUsed, totalScore: score, startTime });
-  }, [level, clues, gameState, timeLeft, hintUsed, score, startTime]);
+    // Ensure that when the run is finished we persist the final elapsed time (totalTimeMs)
+    const savePayload = {
+      level,
+      clues,
+      gameState,
+      timeLeft,
+      hintUsed,
+      totalScore: score,
+      startTime,
+    };
+
+    if (gameState === "victory") {
+      // prefer an explicit elapsed if available; otherwise compute from startTime
+      const finalMs = typeof elapsed === "number" && elapsed > 0 ? elapsed * 1000 : (startTime ? Date.now() - startTime : 0);
+      savePayload.totalTimeMs = finalMs;
+    }
+
+    gameProgressManager.saveProgress(savePayload);
+  }, [level, clues, gameState, timeLeft, hintUsed, score, startTime, elapsed, loading]);
 
   // Initialize level
   useEffect(() => {
@@ -325,6 +357,7 @@ const ChronoCipher = () => {
           setAnswer("");
           gameProgressManager.clearProgress();
         }}
+        teamInfo={teamInfo}
         score={score}
         elapsed={elapsed}
       />

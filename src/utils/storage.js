@@ -24,6 +24,7 @@ export const gameProgressManager = {
         hintUsed: gameState.hintUsed,
         totalScore: gameState.totalScore || 0,
         startTime: gameState.startTime || null,
+        totalTimeMs: typeof gameState.totalTimeMs === 'number' ? gameState.totalTimeMs : null,
         completedAt: gameState.gameState === "victory" ? new Date().toISOString() : null,
       };
       const payload = JSON.stringify(progress);

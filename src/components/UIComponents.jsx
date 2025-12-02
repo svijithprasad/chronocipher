@@ -175,7 +175,7 @@ export const ProgressBar = ({ level, totalLevels }) => {
   );
 };
 
-export const VictoryScreen = ({ clues, onPlayAgain, score = 0, elapsed = 0 }) => {
+export const VictoryScreen = ({ clues, onPlayAgain, score = 0, elapsed = 0, teamInfo = null }) => {
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
 
@@ -202,6 +202,14 @@ export const VictoryScreen = ({ clues, onPlayAgain, score = 0, elapsed = 0 }) =>
           <div>Score: <span className="text-cyan-300">{score}</span></div>
           <div>Time: <span className="text-cyan-300">{minutes}:{seconds.toString().padStart(2, '0')}</span></div>
         </div>
+        {teamInfo && (
+          <div className="absolute top-4 left-6 z-20 bg-black/70 border border-purple-600 rounded px-3 py-2 text-sm text-purple-200 font-bold">
+            <div className="text-xs text-gray-400">Team</div>
+            <div className="text-cyan-200">{teamInfo.teamName}</div>
+            <div className="text-xs text-gray-400 mt-1">Members</div>
+            <div className="text-purple-200 text-sm">{(teamInfo.members || []).join(" / ")}</div>
+          </div>
+        )}
         <div className="text-7xl mb-8 animate-bounce">🎉</div>
 
         <h1 className="text-5xl font-bold text-cyan-400 mb-4 drop-shadow-lg">

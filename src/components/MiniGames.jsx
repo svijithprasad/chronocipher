@@ -472,6 +472,7 @@ export const SimonMiniGame = ({ puzzle, onComplete, timeLeft, onTimeout }) => {
   const [userSequence, setUserSequence] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [gameActive, setGameActive] = useState(false);
+  const [started, setStarted] = useState(false);
   const [level, setLevel] = useState(1);
   const [message, setMessage] = useState("Watch the sequence...");
   const audioRef = useRef(null);
@@ -504,14 +505,14 @@ export const SimonMiniGame = ({ puzzle, onComplete, timeLeft, onTimeout }) => {
     setMessage("Your turn!");
   };
 
-  // Initialize game
-  useEffect(() => {
-    if (sequence.length === 0) {
-      const initialSequence = [Math.floor(Math.random() * 4)];
-      setSequence(initialSequence);
-      playSequence(initialSequence);
-    }
-  }, []);
+  // Initialize game only when player presses start
+  const startGame = () => {
+    if (started) return;
+    setStarted(true);
+    const initialSequence = [Math.floor(Math.random() * 4)];
+    setSequence(initialSequence);
+    playSequence(initialSequence);
+  };
 
   // Handle user color selection
   const handleColorClick = (colorId) => {
@@ -519,9 +520,9 @@ export const SimonMiniGame = ({ puzzle, onComplete, timeLeft, onTimeout }) => {
 
     const newUserSequence = [...userSequence, colorId];
     setUserSequence(newUserSequence);
-    // provide brief feedback flash for the clicked color
+    // provide brief feedback flash for the clicked color (stronger visual cue)
     setActiveColor(colorId);
-    setTimeout(() => setActiveColor(null), 250);
+    setTimeout(() => setActiveColor(null), 300);
 
     // Check if user's input is correct
     if (newUserSequence[newUserSequence.length - 1] !== sequence[newUserSequence.length - 1]) {
@@ -553,20 +554,31 @@ export const SimonMiniGame = ({ puzzle, onComplete, timeLeft, onTimeout }) => {
       </div>
       <div className="text-lg text-purple-300">{message}</div>
 
-      <div className="grid grid-cols-2 gap-4 w-48 mx-auto">
-        {colors.map((color) => (
+      {!started ? (
+        <div className="flex justify-center">
           <button
-            key={color.id}
-            onClick={() => handleColorClick(color.id)}
-            disabled={!gameActive}
-            className={`w-20 h-20 rounded-lg ${color.class} ${
-              gameActive ? color.hoverClass + " cursor-pointer" : "opacity-50 cursor-not-allowed"
-            } transform transition-transform ${
-              activeColor === color.id ? "scale-95 ring-4 ring-white/20" : "scale-100"
-            } shadow-lg`}
-          />
-        ))}
-      </div>
+            onClick={startGame}
+            className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 rounded-lg font-bold shadow-lg"
+          >
+            START
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 w-48 mx-auto">
+          {colors.map((color) => (
+            <button
+              key={color.id}
+              onClick={() => handleColorClick(color.id)}
+              disabled={!gameActive}
+              className={`w-20 h-20 rounded-lg ${color.class} ${
+                gameActive ? color.hoverClass + " cursor-pointer" : "opacity-50 cursor-not-allowed"
+              } transform transition-transform ${
+                activeColor === color.id ? "scale-95 ring-8 ring-white/30 animate-pulse" : "scale-100"
+              } shadow-lg`}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="text-sm text-purple-300">
         Repeat the color sequence. Levels increase in difficulty.
@@ -583,8 +595,8 @@ export const BreakoutMiniGame = ({ puzzle, onComplete, timeLeft, onTimeout }) =>
     paddleX: 150,
     ballX: 190,
     ballY: 150,
-    ballDX: 2,
-    ballDY: -2,
+        ballDX: 5,
+        ballDY: -5,
     bricks: [],
     score: 0,
   });
@@ -631,7 +643,14 @@ export const BreakoutMiniGame = ({ puzzle, onComplete, timeLeft, onTimeout }) =>
         state.ballX > state.paddleX &&
         state.ballX < state.paddleX + 80
       ) {
-        state.ballDY = -2;
+          // invert Y direction and increase speed slightly (cap max)
+          const increased = Math.min(Math.abs(state.ballDY) * 1.12, 12);
+          state.ballDY = -increased;
+          // add slight horizontal change based on where the ball hit the paddle
+          const hitPos = (state.ballX - state.paddleX) - 40; // -40..+40
+          state.ballDX += hitPos * 0.02;
+          // cap horizontal speed
+          state.ballDX = Math.max(-10, Math.min(10, state.ballDX));
       }
 
       // Ball out of bounds
