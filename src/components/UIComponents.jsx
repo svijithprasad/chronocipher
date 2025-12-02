@@ -253,7 +253,7 @@ export const VictoryScreen = ({ clues, onPlayAgain, score = 0, elapsed = 0, team
   );
 };
 
-export const CipherLockScreen = ({ clues, masterCode, onUnlock }) => {
+export const CipherLockScreen = ({ clues, masterCode, derivedPasscode, onUnlock }) => {
   const [dials, setDials] = React.useState([0, 0, 0, 0]);
   const [message, setMessage] = React.useState("Rotate dials to match the master code");
   const [typedCode, setTypedCode] = React.useState("");
@@ -268,10 +268,40 @@ export const CipherLockScreen = ({ clues, masterCode, onUnlock }) => {
     });
   };
 
+  // autoAttemptRef prevents repeated auto-unlock triggers
+  const autoAttemptRef = React.useRef(false);
+
+  // Reset auto-attempt if user types or clues/master change
+  React.useEffect(() => {
+    autoAttemptRef.current = false;
+  }, [typedCode, clues, masterCode, derivedPasscode]);
+
+  // When the dials form a valid code (substring, derived passcode, or convenience), auto-attempt unlock
+  React.useEffect(() => {
+    const code = dials.map((d) => characters[d]).join("");
+    const combined = masterCode || clues.join("");
+    if (autoAttemptRef.current) return;
+    if (
+      code === combined ||
+      code.includes("CHRONO") ||
+      combined.includes(code) ||
+      (derivedPasscode && code === derivedPasscode)
+    ) {
+      autoAttemptRef.current = true;
+      setMessage("Auto-unlocked — matching segment detected.");
+      setTimeout(() => onUnlock(code), 450);
+    }
+  }, [dials.join("")]);
+
   const attemptUnlock = () => {
     const code = dials.map((d) => characters[d]).join("");
     const combined = masterCode || clues.join("");
-    if (code === combined || code.includes("CHRONO") || combined.includes(code)) {
+    if (
+      code === combined ||
+      code.includes("CHRONO") ||
+      combined.includes(code) ||
+      (derivedPasscode && code === derivedPasscode)
+    ) {
       setMessage("Unlocked — Master key accepted.");
       setTimeout(() => onUnlock(code), 600);
     } else {
@@ -286,7 +316,7 @@ export const CipherLockScreen = ({ clues, masterCode, onUnlock }) => {
       setMessage("Type the full combined clues or a valid code.");
       return;
     }
-    if (cleaned === combined || cleaned === "CHRONOCIPHER") {
+    if (cleaned === combined || cleaned === "CHRONOCIPHER" || (derivedPasscode && cleaned === derivedPasscode)) {
       setMessage("Unlocked via typed master code.");
       setTimeout(() => onUnlock(cleaned), 400);
       return;
@@ -326,23 +356,17 @@ export const CipherLockScreen = ({ clues, masterCode, onUnlock }) => {
 
         <div className="my-4">
           <div className="text-sm text-gray-400 mb-2">
-            Hint: You can rotate the dials to match any 4-character segment of the Master Code, or paste/type the full combined clues and submit.
+            Hint: Press Enter after typing the full combined clues or a valid code. You can also set dials and press Enter to attempt a 4-character segment.
           </div>
           <div className="flex gap-2 justify-center">
             <input
               value={typedCode}
               onChange={(e) => setTypedCode(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitTyped()}
               placeholder="Paste full master code here"
               className="px-3 py-2 w-2/3 bg-black border-2 border-purple-500 rounded text-cyan-300"
             />
-            <button onClick={submitTyped} className="px-3 py-2 bg-purple-600 rounded text-white">Submit</button>
           </div>
-        </div>
-
-        <div className="space-x-4">
-          <button onClick={attemptUnlock} className="px-6 py-2 bg-cyan-400 rounded font-bold">
-            Attempt Unlock
-          </button>
         </div>
 
         <div className="mt-6 text-purple-300">{message}</div>
@@ -449,13 +473,7 @@ export const FinalCipherScreen = ({ clues, answer, message, onSubmit, setAnswer 
 
         <MessageDisplay message={message} />
 
-        <button
-          onClick={onSubmit}
-          className="w-full py-4 bg-linear-to-r from-purple-600 to-cyan-600 text-white rounded-lg font-bold text-lg hover:from-purple-500 hover:to-cyan-500 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-purple-500/50"
-        >
-          <Zap size={24} />
-          UNLOCK THE VAULT
-        </button>
+        {/* Removed the button to prefer Enter-key submission via the input above */}
 
         <div className="mt-6 text-center text-gray-400 text-sm border-t border-purple-500/30 pt-6">
           Hint: The master code is either the full combined clue sequence or contains "CHRONO"

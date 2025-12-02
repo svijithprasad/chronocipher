@@ -78,15 +78,30 @@ const ChronoCipher = () => {
   const didRestoreRef = useRef(false);
   const [teamInfo, setTeamInfo] = useState(null);
   const masterCode = puzzles.slice(0, 43).map((p) => p.clue).join("");
+  // Derived passcode: build acronym from first letters of each clue, hash to short code
+  const derivedPasscode = React.useMemo(() => {
+    try {
+      const initials = puzzles.slice(0, 43).map((p) => (p.clue || "")[0] || "").join("");
+      let hash = 5381;
+      for (let i = 0; i < initials.length; i++) {
+        hash = (hash * 33) ^ initials.charCodeAt(i);
+      }
+      const base36 = (hash >>> 0).toString(36).toUpperCase();
+      return base36.slice(-6).padStart(6, "0");
+    } catch (e) {
+      return null;
+    }
+  }, []);
 
   // Load progress on mount
   useEffect(() => {
     const savedProgress = gameProgressManager.loadProgress();
+    let savedState = null;
     if (savedProgress) {
       // Restore saved values with safe defaults
       const savedLevel = savedProgress.level || 1;
       const savedClues = Array.isArray(savedProgress.clues) ? savedProgress.clues : [];
-      const savedState = savedProgress.gameState || "playing";
+      savedState = savedProgress.gameState || "playing";
       setLevel(savedLevel);
       setClues(savedClues);
       // restore gameState carefully (final/victory states)
@@ -122,7 +137,8 @@ const ChronoCipher = () => {
     if (savedTeam) setTeamInfo(savedTeam);
     // finished restoring
     // if there was no saved startTime, initialize it so elapsed starts counting
-    if (!savedProgress || !savedProgress.startTime) {
+    // Do not initialize startTime when restoring a completed 'victory' run — keep elapsed frozen.
+    if ((!savedProgress || !savedProgress.startTime) && savedState !== "victory") {
       setStartTime(Date.now());
     }
     setLoading(false);
@@ -387,6 +403,7 @@ const ChronoCipher = () => {
       <CipherLockScreen
         clues={clues}
         masterCode={masterCode}
+        derivedPasscode={derivedPasscode}
         onUnlock={(code) => {
           // Accept unlock and show victory
           playSound("victory");
