@@ -77,6 +77,7 @@ const ChronoCipher = () => {
   const currentPuzzle = level <= 43 ? puzzles[level - 1] : null;
   const didRestoreRef = useRef(false);
   const [teamInfo, setTeamInfo] = useState(null);
+  const teamInfoLoadedRef = useRef(false);
   const masterCode = puzzles.slice(0, 43).map((p) => p.clue).join("");
   // Derived passcode: build acronym from first letters of each clue, hash to short code
   const derivedPasscode = React.useMemo(() => {
@@ -134,15 +135,21 @@ const ChronoCipher = () => {
 
     // load team info too
     const savedTeam = gameProgressManager.loadTeamInfo?.();
-    if (savedTeam) setTeamInfo(savedTeam);
-    // finished restoring
-    // if there was no saved startTime, initialize it so elapsed starts counting
-    // Do not initialize startTime when restoring a completed 'victory' run — keep elapsed frozen.
-    if ((!savedProgress || !savedProgress.startTime) && savedState !== "victory") {
-      setStartTime(Date.now());
+    if (savedTeam) {
+      setTeamInfo(savedTeam);
+      teamInfoLoadedRef.current = true;
     }
+    // finished restoring
     setLoading(false);
   }, []);
+
+  // Start the timer when team info becomes available (either from form submission or saved state)
+  useEffect(() => {
+    // Only initialize startTime if it hasn't been set yet and teamInfo is available
+    if (teamInfo && startTime === null && !didRestoreRef.current) {
+      setStartTime(Date.now());
+    }
+  }, [teamInfo, startTime]);
 
   
 
@@ -196,15 +203,16 @@ const ChronoCipher = () => {
     }
   }, [level, gameState]);
 
-  // Timer effect
+  // Timer effect - only runs if teamInfo is set (team form submitted)
   useEffect(() => {
+    if (!teamInfo) return; // Don't start level timer until team submits
     if (gameState === "playing" && level <= 40 && timeLeft > 0) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && level <= 40 && gameState === "playing") {
       handleTimeout();
     }
-  }, [timeLeft, gameState, level]);
+  }, [timeLeft, gameState, level, teamInfo]);
 
   // Particle effect
   useEffect(() => {
@@ -224,8 +232,9 @@ const ChronoCipher = () => {
 
   // elapsed timer (for score/time display)
   // Keep counting while playing and during the final lock screen; stop when victory achieved.
+  // Only runs if teamInfo is set (team form submitted)
   useEffect(() => {
-    if (!startTime) return;
+    if (!teamInfo || !startTime) return; // Don't start elapsed timer until team submits
 
     const update = () => setElapsed(Math.floor((Date.now() - startTime) / 1000));
 
@@ -240,7 +249,7 @@ const ChronoCipher = () => {
       update();
     }
     return undefined;
-  }, [startTime, gameState]);
+  }, [startTime, gameState, teamInfo]);
 
   const playSound = (type) => {
     console.log(`Playing ${type} sound`);
