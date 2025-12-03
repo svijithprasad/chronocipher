@@ -556,7 +556,7 @@ export const puzzles = [
     time: 120,
     difficulty: "hard",
   },
-
+//scam happened
   // Level 43: MINI-GAME - Typing Challenge
   {
     id: 43,
