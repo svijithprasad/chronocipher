@@ -120,10 +120,9 @@ const ChronoCipher = () => {
       setScore(savedProgress.totalScore || 0);
       // If the saved run already reached victory, restore the final elapsed time
       if (savedState === "victory") {
+        // Restore the final elapsed time from totalTimeMs (milliseconds)
         if (typeof savedProgress.totalTimeMs === "number") {
           setElapsed(Math.floor(savedProgress.totalTimeMs / 1000));
-        } else if (savedProgress.startTime) {
-          setElapsed(Math.floor((Date.now() - savedProgress.startTime) / 1000));
         }
         // Do not set startTime so the elapsed timer won't resume ticking on mount
         setStartTime(null);
@@ -144,12 +143,13 @@ const ChronoCipher = () => {
   }, []);
 
   // Start the timer when team info becomes available (either from form submission or saved state)
+  // Skip if we're in victory state or if we already have a startTime
   useEffect(() => {
-    // Only initialize startTime if it hasn't been set yet and teamInfo is available
-    if (teamInfo && startTime === null && !didRestoreRef.current) {
+    if (gameState === "victory") return; // Don't start timer for completed runs
+    if (teamInfo && startTime === null) {
       setStartTime(Date.now());
     }
-  }, [teamInfo, startTime]);
+  }, [teamInfo, startTime, gameState]);
 
   
 

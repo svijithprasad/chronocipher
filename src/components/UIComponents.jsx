@@ -254,66 +254,14 @@ export const VictoryScreen = ({ clues, onPlayAgain, score = 0, elapsed = 0, team
 };
 
 export const CipherLockScreen = ({ clues, masterCode, derivedPasscode, onUnlock }) => {
-  const [dials, setDials] = React.useState([0, 0, 0, 0]);
-  const [message, setMessage] = React.useState("Rotate dials to match the master code");
+  const [message, setMessage] = React.useState("Enter the Master Code to unlock the vault");
   const [typedCode, setTypedCode] = React.useState("");
-
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
-
-  const rotateDial = (idx, delta) => {
-    setDials((prev) => {
-      const next = [...prev];
-      next[idx] = (next[idx] + delta + characters.length) % characters.length;
-      return next;
-    });
-  };
-
-  // autoAttemptRef prevents repeated auto-unlock triggers
-  const autoAttemptRef = React.useRef(false);
-
-  // Reset auto-attempt if user types or clues/master change
-  React.useEffect(() => {
-    autoAttemptRef.current = false;
-  }, [typedCode, clues, masterCode, derivedPasscode]);
-
-  // When the dials form a valid code (substring, derived passcode, or convenience), auto-attempt unlock
-  React.useEffect(() => {
-    const code = dials.map((d) => characters[d]).join("");
-    const combined = masterCode || clues.join("");
-    if (autoAttemptRef.current) return;
-    if (
-      code === combined ||
-      code.includes("CHRONO") ||
-      combined.includes(code) ||
-      (derivedPasscode && code === derivedPasscode)
-    ) {
-      autoAttemptRef.current = true;
-      setMessage("Auto-unlocked — matching segment detected.");
-      setTimeout(() => onUnlock(code), 450);
-    }
-  }, [dials.join("")]);
-
-  const attemptUnlock = () => {
-    const code = dials.map((d) => characters[d]).join("");
-    const combined = masterCode || clues.join("");
-    if (
-      code === combined ||
-      code.includes("CHRONO") ||
-      combined.includes(code) ||
-      (derivedPasscode && code === derivedPasscode)
-    ) {
-      setMessage("Unlocked — Master key accepted.");
-      setTimeout(() => onUnlock(code), 600);
-    } else {
-      setMessage("Incorrect. Use the clues or include 'CHRONO'.");
-    }
-  };
 
   const submitTyped = () => {
     const combined = masterCode || clues.join("");
     const cleaned = (typedCode || "").toUpperCase().trim();
     if (!cleaned) {
-      setMessage("Type the full combined clues or a valid code.");
+      setMessage("Type the combined clues or 'CHRONOCIPHER' to unlock.");
       return;
     }
     if (cleaned === combined || cleaned === "CHRONOCIPHER" || (derivedPasscode && cleaned === derivedPasscode)) {
@@ -321,52 +269,27 @@ export const CipherLockScreen = ({ clues, masterCode, derivedPasscode, onUnlock 
       setTimeout(() => onUnlock(cleaned), 400);
       return;
     }
-    setMessage("Typed code not correct. Make sure you combined full clues exactly.");
+    setMessage("Incorrect code. Review your clues and try again.");
   };
 
   return (
     <div className="min-h-screen bg-linear-to-b from-black via-purple-950 to-black flex items-center justify-center p-4">
       <div className="max-w-2xl w-full bg-black/80 border-2 border-cyan-500 rounded-lg p-8 text-center">
         <h2 className="text-3xl font-bold text-purple-300 mb-4">Cipher Lock</h2>
-        <p className="text-cyan-300 mb-6">Use the dials to enter the Master Code assembled from your clues.</p>
+        <p className="text-cyan-300 mb-6">The vault awaits. Enter the Master Code assembled from your clues.</p>
 
-        <div className="flex justify-center gap-4 mb-6">
-          {dials.map((d, idx) => (
-            <div key={idx} className="flex flex-col items-center">
-              <button
-                onClick={() => rotateDial(idx, -1)}
-                className="px-3 py-1 bg-purple-700 rounded text-white mb-2 hover:bg-purple-600"
-                aria-label={`Rotate dial ${idx + 1} up`}
-              >
-                ▲
-              </button>
-              <div className="w-16 h-16 flex items-center justify-center bg-black border-2 border-purple-500 rounded text-cyan-300 font-mono text-xl">
-                {characters[d]}
-              </div>
-              <button
-                onClick={() => rotateDial(idx, 1)}
-                className="px-3 py-1 bg-purple-700 rounded text-white mt-2 hover:bg-purple-600"
-                aria-label={`Rotate dial ${idx + 1} down`}
-              >
-                ▼
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className="my-4">
-          <div className="text-sm text-gray-400 mb-2">
-            Hint: Press Enter after typing the full combined clues or a valid code. You can also set dials and press Enter to attempt a 4-character segment.
+        <div className="my-8">
+          <div className="text-sm text-gray-400 mb-4">
+            Hint: Type the full combined master code or 'CHRONOCIPHER' and press Enter.
           </div>
-          <div className="flex gap-2 justify-center">
-            <input
-              value={typedCode}
-              onChange={(e) => setTypedCode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitTyped()}
-              placeholder="Paste full master code here"
-              className="px-3 py-2 w-2/3 bg-black border-2 border-purple-500 rounded text-cyan-300"
-            />
-          </div>
+          <input
+            value={typedCode}
+            onChange={(e) => setTypedCode(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitTyped()}
+            placeholder="Enter the master code here..."
+            className="w-full px-4 py-3 bg-black border-2 border-purple-500 rounded text-cyan-300 font-mono text-lg focus:border-cyan-400 focus:outline-none transition-all placeholder-gray-600"
+            autoFocus
+          />
         </div>
 
         <div className="mt-6 text-purple-300">{message}</div>
